@@ -5,6 +5,7 @@ pipeline {
         jdk 'jdk17'
         maven 'maven3'
     }
+    
     environment {
         SCANNER_HOME= tool 'sonar-scanner'
     }
@@ -12,10 +13,9 @@ pipeline {
     stages {
         stage('GIT CHECKOUT') {
             steps {
-               git branch: 'main', credentialsId: 'git-cred', url: 'https://github.com/VM2322/Boardgame.git'
+            git branch: 'main', credentialsId: 'git-cred', url: 'https://github.com/Mr-Sakthi/Vivek-s-Gaming-Application.git'
             }
-        }
-    
+        }           
                 stage('MAVEN COMPILE') {
             steps {
                 sh "mvn compile"
@@ -27,30 +27,26 @@ pipeline {
                 sh "mvn test"
             }
         }
-        
         stage('TRIVY FILESYSTEM SCAN') {
             steps {
                 sh "trivy fs --format table -o trivy-fs-report.html ."
             }
         }
-        
         stage('SONARQUBE ANALYSIS') {
             steps {
                 withSonarQubeEnv('sonar') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Calculator -Dsonar.projectKey=Calculator\
+                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Gaming -Dsonar.projectKey=Gaming\
                             -Dsonar.java.binaries=. '''
                 }
             }
         }
-        
-                stage('QUALITY GATE') {
+        stage('QUALITY GATE') {
             steps {
                 script {
                   waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
                 }
             }
         }
-        
         stage('MAVEN BUILD') {
             steps {
                sh "mvn package"
@@ -61,21 +57,20 @@ pipeline {
             steps {
                script {
                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                            sh "docker build -t VM2322/gaming:latest ."
+                            sh "docker build -t mrsakthi/gaming:latest ."
                     }
                }
             }
-        } 
-    
-             stage('IMAGE SCANNING') {
+        }
+        stage('IMAGE SCANNING') {
             steps {
-                sh "trivy image --format table -o trivy-image-report.html adijaiswal/boardshack:latest "
+                sh "trivy image --format table -o trivy-image-report.html mrsakthi/gaming "
             }
         }   
             
         stage('DOCKER DEPLOYMENT') {
             steps {
-                sh "docker run -d -p 8090:8080 VM2322/gaming:latest"
+                sh "docker run -d -p 8092:8080 mrsakthi/gaming"
             }
         }   
     }
